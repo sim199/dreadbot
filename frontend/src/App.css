@@ -1,38 +1,186 @@
+/* Terminal and Hacker Theme Styles */
 .App {
-    text-align: center;
+  background: linear-gradient(135deg, #0c1e0f 0%, #1a1a1a 100%);
+  min-height: 100vh;
 }
 
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Custom Slider Styles */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(to right, #374151 0%, #10b981 var(--value, 50%), #374151 var(--value, 50%));
+  outline: none;
+  border-radius: 8px;
+  transition: all 0.3s ease;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(45deg, #10b981, #059669);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+  transition: all 0.2s ease;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.8);
 }
 
-.App-link {
-    color: #61dafb;
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(45deg, #10b981, #059669);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+  transition: all 0.2s ease;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.8);
+}
+
+/* Terminal Scrollbar */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #10b981;
+  border-radius: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #059669;
+}
+
+/* Glowing Animation for Active Elements */
+@keyframes glow-green {
+  0% {
+    box-shadow: 0 0 5px rgba(16, 185, 129, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.6), 0 0 30px rgba(16, 185, 129, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(16, 185, 129, 0.2);
+  }
+}
+
+.glow-active {
+  animation: glow-green 2s ease-in-out infinite;
+}
+
+/* Matrix-style Background Effect */
+.bg-matrix {
+  background-image: 
+    linear-gradient(rgba(0, 255, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 0, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Button Hover Effects */
+button:hover {
+  transition: all 0.2s ease;
+}
+
+.gamepad-button-active {
+  transform: scale(0.95);
+  filter: brightness(1.5);
+}
+
+/* Cyber Grid Lines */
+.cyber-grid {
+  background-image: 
+    linear-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 185, 129, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Status Indicator Pulse */
+@keyframes pulse-green {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.status-online {
+  animation: pulse-green 2s ease-in-out infinite;
+}
+
+/* Terminal Text Effects */
+.terminal-text {
+  text-shadow: 0 0 5px currentColor;
+}
+
+/* Custom Focus Styles */
+input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .grid-cols-1.lg\\:grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* High contrast mode for better visibility */
+@media (prefers-contrast: high) {
+  .text-green-400 {
+    color: #00ff00;
+  }
+  
+  .text-gray-300 {
+    color: #ffffff;
+  }
+  
+  .bg-gray-800 {
+    background-color: #000000;
+    border: 2px solid #00ff00;
+  }
+}
+
+/* Accessibility improvements */
+button:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+input:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+/* Loading animation for servo updates */
+@keyframes servo-update {
+  0% {
+    background-color: rgba(16, 185, 129, 0.1);
+  }
+  50% {
+    background-color: rgba(16, 185, 129, 0.3);
+  }
+  100% {
+    background-color: rgba(16, 185, 129, 0.1);
+  }
+}
+
+.servo-updating {
+  animation: servo-update 0.5s ease-in-out;
 }
