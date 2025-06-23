@@ -13,16 +13,40 @@ import uuid
 from datetime import datetime
 import asyncio
 
+# Configure logging first
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# MongoDB connection with error handling
+try:
+    mongo_url = os.environ.get('MONGO_URL')
+    db_name = os.environ.get('DB_NAME')
+    
+    if not mongo_url:
+        logger.error("MONGO_URL environment variable not set")
+        raise ValueError("MONGO_URL environment variable is required")
+    
+    if not db_name:
+        logger.error("DB_NAME environment variable not set")
+        raise ValueError("DB_NAME environment variable is required")
+    
+    logger.info(f"Connecting to MongoDB: {mongo_url[:20]}...")
+    client = AsyncIOMotorClient(mongo_url)
+    db = client[db_name]
+    logger.info("MongoDB connection initialized")
+    
+except Exception as e:
+    logger.error(f"Failed to initialize MongoDB connection: {e}")
+    raise
 
 # Create the main app without a prefix
-app = FastAPI()
+app = FastAPI(title="Dreadnought Servo Control API", version="1.0.0")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -37,19 +61,19 @@ class ConnectionManager:
         await websocket.accept()
         if client_type == "esp32":
             self.esp32_connection = websocket
-            print("ESP32 connected!")
+            logger.info("ESP32 connected!")
         else:
             self.active_connections.append(websocket)
-            print(f"Dashboard client connected. Total: {len(self.active_connections)}")
+            logger.info(f"Dashboard client connected. Total: {len(self.active_connections)}")
 
     def disconnect(self, websocket: WebSocket, client_type: str = "dashboard"):
         if client_type == "esp32":
             self.esp32_connection = None
-            print("ESP32 disconnected!")
+            logger.info("ESP32 disconnected!")
         else:
             if websocket in self.active_connections:
                 self.active_connections.remove(websocket)
-            print(f"Dashboard client disconnected. Total: {len(self.active_connections)}")
+            logger.info(f"Dashboard client disconnected. Total: {len(self.active_connections)}")
 
     async def send_to_esp32(self, message: dict):
         if self.esp32_connection and self.esp32_connection.client_state == WebSocketState.CONNECTED:
@@ -57,7 +81,7 @@ class ConnectionManager:
                 await self.esp32_connection.send_text(json.dumps(message))
                 return True
             except Exception as e:
-                print(f"Error sending to ESP32: {e}")
+                logger.error(f"Error sending to ESP32: {e}")
                 return False
         return False
 
@@ -71,7 +95,7 @@ class ConnectionManager:
                     else:
                         disconnected.append(connection)
                 except Exception as e:
-                    print(f"Error broadcasting: {e}")
+                    logger.error(f"Error broadcasting: {e}")
                     disconnected.append(connection)
             
             # Remove disconnected connections
@@ -128,38 +152,12 @@ async def websocket_dashboard(websocket: WebSocket):
                 }
                 await websocket.send_text(json.dumps(response))
                 
-            elif message["type"] == "preset_pose":
-                # Handle preset pose execution
-                pose_name = message["pose_name"]
-                angles = message["angles"]
-                speed = message.get("speed", 5)
-                
-                success_count = 0
-                for i, angle in enumerate(angles):
-                    if i < 6:  # Only handle first 6 servos
-                        success = await manager.send_to_esp32({
-                            "type": "servo_command",
-                            "servo_index": i,
-                            "angle": angle,
-                            "speed": speed
-                        })
-                        if success:
-                            success_count += 1
-                            await manager.broadcast_to_dashboards({
-                                "type": "servo_update",
-                                "servo_index": i,
-                                "angle": angle
-                            })
-                        
-                        # Small delay between servo commands for smooth execution
-                        await asyncio.sleep(0.05)
-                
-                response = {
-                    "type": "command_response",
-                    "success": success_count > 0,
-                    "message": f"Executed pose '{pose_name}' ({success_count}/6 servos successful)"
-                }
-                await websocket.send_text(json.dumps(response))
+                # Broadcast to other dashboards
+                await manager.broadcast_to_dashboards({
+                    "type": "servo_update",
+                    "servo_index": message["servo_index"],
+                    "angle": message["angle"]
+                })
             
             elif message["type"] == "terminal_command":
                 # Parse terminal commands
@@ -246,57 +244,6 @@ async def process_terminal_command(command: str, websocket: WebSocket):
             else:
                 message = "❌ Invalid angle (0-180)"
                 
-        elif cmd == "pose" and len(parts) >= 2:
-            # pose <pose_name>
-            pose_name = parts[1]
-            pose_definitions = {
-                "stand": [90, 90, 90, 90, 90, 90],
-                "crouch": [60, 60, 45, 60, 60, 45],
-                "walk_forward": [75, 105, 60, 105, 75, 120],
-                "walk_backward": [105, 75, 120, 75, 105, 60],
-                "walk_left": [45, 90, 90, 135, 90, 90],
-                "walk_right": [135, 90, 90, 45, 90, 90],
-                "combat_ready": [80, 80, 70, 100, 100, 110]
-            }
-            
-            if pose_name in pose_definitions:
-                angles = pose_definitions[pose_name]
-                success_count = 0
-                
-                for i, angle in enumerate(angles):
-                    success = await manager.send_to_esp32({
-                        "type": "servo_command",
-                        "servo_index": i,
-                        "angle": angle,
-                        "speed": 3
-                    })
-                    if success:
-                        success_count += 1
-                        await manager.broadcast_to_dashboards({
-                            "type": "servo_update",
-                            "servo_index": i,
-                            "angle": angle
-                        })
-                    await asyncio.sleep(0.05)
-                
-                message = f"✅ Executed pose '{pose_name}' ({success_count}/6 servos)"
-            else:
-                available_poses = ", ".join(pose_definitions.keys())
-                message = f"❌ Unknown pose. Available: {available_poses}"
-            
-        elif cmd == "emergency_stop":
-            # Emergency stop - freeze all servos at current positions
-            success_count = 0
-            for i in range(6):
-                success = await manager.send_to_esp32({
-                    "type": "emergency_stop",
-                    "servo_index": i
-                })
-                if success:
-                    success_count += 1
-            
-            message = f"🚨 EMERGENCY STOP executed ({success_count}/6 servos)"
-            
         elif cmd == "status":
             esp32_status = "🟢 Connected" if manager.esp32_connection else "🔴 Disconnected"
             dashboard_count = len(manager.active_connections)
@@ -306,8 +253,6 @@ async def process_terminal_command(command: str, websocket: WebSocket):
             message = """🤖 Dreadnought Control Commands:
   servo <index> <angle> [speed] - Control single servo (0-5, 0-180°)
   servo all <angle>             - Set all servos to same angle
-  pose <name>                   - Execute preset pose (stand, crouch, walk_forward, etc.)
-  emergency_stop                - EMERGENCY: Stop all servos immediately
   status                        - Show connection status
   list configs                  - Show saved configurations
   save config <name>            - Save current servo positions
@@ -329,6 +274,24 @@ async def process_terminal_command(command: str, websocket: WebSocket):
         "type": "terminal_response", 
         "message": message
     }))
+
+# Health check endpoint (useful for debugging)
+@app.get("/health")
+async def health_check():
+    try:
+        # Test MongoDB connection
+        await client.admin.command('ping')
+        mongo_status = "healthy"
+    except Exception as e:
+        logger.error(f"MongoDB health check failed: {e}")
+        mongo_status = f"unhealthy: {str(e)}"
+    
+    return {
+        "status": "ok",
+        "mongodb": mongo_status,
+        "esp32_connected": manager.esp32_connection is not None,
+        "dashboard_connections": len(manager.active_connections)
+    }
 
 # REST API endpoints
 @api_router.get("/")
@@ -368,25 +331,41 @@ async def control_servo(command: ServoCommand):
 
 @api_router.get("/configurations", response_model=List[ServoConfiguration])
 async def get_configurations():
-    configs = await db.servo_configurations.find().to_list(100)
-    return [ServoConfiguration(**config) for config in configs]
+    try:
+        configs = await db.servo_configurations.find().to_list(100)
+        return [ServoConfiguration(**config) for config in configs]
+    except Exception as e:
+        logger.error(f"Error fetching configurations: {e}")
+        return []
 
 @api_router.post("/configurations", response_model=ServoConfiguration)
 async def save_configuration(config: ServoConfiguration):
-    config_dict = config.dict()
-    await db.servo_configurations.insert_one(config_dict)
-    return config
+    try:
+        config_dict = config.dict()
+        await db.servo_configurations.insert_one(config_dict)
+        return config
+    except Exception as e:
+        logger.error(f"Error saving configuration: {e}")
+        raise
 
 @api_router.get("/gamepad-buttons", response_model=List[GamepadButtonConfig])
 async def get_gamepad_buttons():
-    buttons = await db.gamepad_buttons.find().to_list(100)
-    return [GamepadButtonConfig(**button) for button in buttons]
+    try:
+        buttons = await db.gamepad_buttons.find().to_list(100)
+        return [GamepadButtonConfig(**button) for button in buttons]
+    except Exception as e:
+        logger.error(f"Error fetching gamepad buttons: {e}")
+        return []
 
 @api_router.post("/gamepad-buttons", response_model=GamepadButtonConfig)
 async def save_gamepad_button(button: GamepadButtonConfig):
-    button_dict = button.dict()
-    await db.gamepad_buttons.insert_one(button_dict)
-    return button
+    try:
+        button_dict = button.dict()
+        await db.gamepad_buttons.insert_one(button_dict)
+        return button
+    except Exception as e:
+        logger.error(f"Error saving gamepad button: {e}")
+        raise
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -399,13 +378,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Application started successfully")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    logger.info("Shutting down...")
     client.close()
