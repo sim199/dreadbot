@@ -115,9 +115,94 @@ const App = () => {
         break;
       case 'esp32_message':
         setEsp32Connected(true);
-        addTerminalMessage('esp32', `ESP32: ${JSON.stringify(data.data)}`);
+        if (data.data.type === 'status_update') {
+          setEsp32Status(data.data);
+          addTerminalMessage('esp32', `Status: Battery ${data.data.battery_voltage}V, Temp ${data.data.temperature}°C`);
+        } else {
+          addTerminalMessage('esp32', `ESP32: ${JSON.stringify(data.data)}`);
+        }
         break;
     }
+  };
+
+  // Advanced control functions
+  const executePresetPose = (poseName) => {
+    const pose = presetPoses[poseName];
+    if (!pose) return;
+
+    if (websocket && connected) {
+      // Send pose command to ESP32
+      websocket.send(JSON.stringify({
+        type: 'preset_pose',
+        pose_name: poseName,
+        angles: pose.angles,
+        speed: pose.speed
+      }));
+
+      addTerminalMessage('command', `> Executing pose: ${pose.name}`);
+
+      // Update local servo state
+      pose.angles.forEach((angle, index) => {
+        updateServoPosition(index, angle);
+      });
+    }
+  };
+
+  const startRecording = () => {
+    setIsRecording(true);
+    setRecordedSequence([]);
+    addTerminalMessage('system', '🔴 Recording movement sequence...');
+  };
+
+  const stopRecording = () => {
+    setIsRecording(false);
+    addTerminalMessage('system', `✅ Recording stopped. ${recordedSequence.length} positions recorded`);
+  };
+
+  const playRecordedSequence = async () => {
+    if (recordedSequence.length === 0) {
+      addTerminalMessage('error', 'No recorded sequence to play');
+      return;
+    }
+
+    setIsPlaying(true);
+    addTerminalMessage('system', `▶️ Playing recorded sequence (${recordedSequence.length} steps)`);
+
+    for (let i = 0; i < recordedSequence.length; i++) {
+      const step = recordedSequence[i];
+      
+      // Send all servo positions for this step
+      for (let j = 0; j < step.angles.length; j++) {
+        if (websocket && connected) {
+          websocket.send(JSON.stringify({
+            type: 'servo_command',
+            servo_index: j,
+            angle: step.angles[j],
+            speed: step.speed || globalSpeed
+          }));
+        }
+      }
+
+      // Wait for the specified delay
+      await new Promise(resolve => setTimeout(resolve, step.delay || 1000));
+    }
+
+    setIsPlaying(false);
+    addTerminalMessage('system', '✅ Sequence playback completed');
+  };
+
+  const recordCurrentPosition = () => {
+    if (!isRecording) return;
+
+    const currentPosition = {
+      angles: servos.map(servo => servo.angle),
+      speed: globalSpeed,
+      delay: 1000,
+      timestamp: Date.now()
+    };
+
+    setRecordedSequence(prev => [...prev, currentPosition]);
+    addTerminalMessage('system', `📍 Position ${recordedSequence.length + 1} recorded`);
   };
 
   const addTerminalMessage = (type, message) => {
