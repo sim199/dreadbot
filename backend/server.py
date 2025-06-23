@@ -306,10 +306,12 @@ async def process_terminal_command(command: str, websocket: WebSocket):
             message = """🤖 Dreadnought Control Commands:
   servo <index> <angle> [speed] - Control single servo (0-5, 0-180°)
   servo all <angle>             - Set all servos to same angle
+  pose <name>                   - Execute preset pose (stand, crouch, walk_forward, etc.)
+  emergency_stop                - EMERGENCY: Stop all servos immediately
   status                        - Show connection status
   list configs                  - Show saved configurations
-  save config <n>            - Save current servo positions
-  load config <n>            - Load saved configuration
+  save config <name>            - Save current servo positions
+  load config <name>            - Load saved configuration
   clear                         - Clear terminal
   help                          - Show this help"""
   
