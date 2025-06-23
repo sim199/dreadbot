@@ -322,21 +322,41 @@ const App = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 h-[calc(100vh-80px)]">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 p-6 h-[calc(100vh-80px)]">
         {/* Servo Controls */}
         <div className="space-y-4">
           <h2 className="text-xl font-bold text-green-400 border-b border-green-500 pb-2">
             SERVO ACTUATORS
           </h2>
           
-          <div className="grid grid-cols-1 gap-4">
+          {/* Global Speed Control */}
+          <div className="bg-gray-800 border border-green-500 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-green-300 font-bold text-sm">GLOBAL SPEED</span>
+              <span className="text-cyan-400 font-bold">{globalSpeed}</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              value={globalSpeed}
+              onChange={(e) => setGlobalSpeed(parseInt(e.target.value))}
+              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+            />
+            <div className="flex justify-between text-xs text-gray-400 mt-1">
+              <span>SLOW</span>
+              <span>FAST</span>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-3">
             {servos.map((servo) => (
-              <div key={servo.index} className={`bg-gray-800 border rounded-lg p-4 transition-all duration-300 ${
+              <div key={servo.index} className={`bg-gray-800 border rounded-lg p-3 transition-all duration-300 ${
                 servo.enabled ? 'border-green-500' : 'border-gray-600'
               } ${servo.lastUpdate && Date.now() - servo.lastUpdate < 1000 ? 'bg-green-900 bg-opacity-30' : ''}`}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <span className="text-green-300 font-bold">SERVO_{servo.index}</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-green-300 font-bold text-sm">{servo.name}</span>
                     <button
                       onClick={() => handleServoToggle(servo.index)}
                       className={`px-2 py-1 text-xs rounded transition-colors ${
@@ -345,11 +365,11 @@ const App = () => {
                           : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                       }`}
                     >
-                      {servo.enabled ? 'ACTIVE' : 'DISABLED'}
+                      {servo.enabled ? 'ON' : 'OFF'}
                     </button>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-cyan-400">{servo.angle}°</div>
+                    <div className="text-lg font-bold text-cyan-400">{servo.angle}°</div>
                   </div>
                 </div>
                 
@@ -365,25 +385,25 @@ const App = () => {
                     className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
                   />
                   
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-1">
                     <button 
                       onClick={() => servo.enabled && sendServoCommand(servo.index, 0)}
                       disabled={!servo.enabled || !connected}
-                      className="flex-1 px-3 py-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 rounded text-xs"
+                      className="flex-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 rounded text-xs"
                     >
                       0°
                     </button>
                     <button 
                       onClick={() => servo.enabled && sendServoCommand(servo.index, 90)}
                       disabled={!servo.enabled || !connected}
-                      className="flex-1 px-3 py-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 rounded text-xs"
+                      className="flex-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 rounded text-xs"
                     >
                       90°
                     </button>
                     <button 
                       onClick={() => servo.enabled && sendServoCommand(servo.index, 180)}
                       disabled={!servo.enabled || !connected}
-                      className="flex-1 px-3 py-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 rounded text-xs"
+                      className="flex-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 rounded text-xs"
                     >
                       180°
                     </button>
@@ -391,6 +411,143 @@ const App = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Advanced Controls */}
+        <div className="space-y-4">
+          {/* Preset Poses */}
+          <div className="bg-gray-800 border border-green-500 rounded-lg p-4">
+            <h3 className="text-lg font-bold text-green-400 border-b border-green-500 pb-2 mb-3">
+              COMBAT POSES
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(presetPoses).map(([key, pose]) => (
+                <button
+                  key={key}
+                  onClick={() => executePresetPose(key)}
+                  disabled={!connected}
+                  className="px-3 py-2 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-green-700 hover:to-green-600 disabled:opacity-50 rounded text-sm font-medium transition-all duration-200 transform hover:scale-105"
+                >
+                  {pose.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Movement Recording */}
+          <div className="bg-gray-800 border border-yellow-500 rounded-lg p-4">
+            <h3 className="text-lg font-bold text-yellow-400 border-b border-yellow-500 pb-2 mb-3">
+              SEQUENCE RECORDER
+            </h3>
+            
+            <div className="space-y-3">
+              <div className="flex space-x-2">
+                <button
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={!connected}
+                  className={`flex-1 px-3 py-2 rounded font-medium transition-all ${
+                    isRecording 
+                      ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse' 
+                      : 'bg-green-600 hover:bg-green-500 text-white'
+                  }`}
+                >
+                  {isRecording ? '⏹️ STOP REC' : '⏺️ RECORD'}
+                </button>
+                
+                <button
+                  onClick={recordCurrentPosition}
+                  disabled={!isRecording || !connected}
+                  className="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded text-white font-medium"
+                >
+                  📍 MARK
+                </button>
+              </div>
+              
+              <button
+                onClick={playRecordedSequence}
+                disabled={recordedSequence.length === 0 || !connected || isPlaying}
+                className={`w-full px-3 py-2 rounded font-medium transition-all ${
+                  isPlaying
+                    ? 'bg-purple-600 text-white animate-pulse'
+                    : 'bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white'
+                }`}
+              >
+                {isPlaying ? '▶️ PLAYING...' : `▶️ PLAY (${recordedSequence.length})`}
+              </button>
+              
+              <div className="text-xs text-gray-400">
+                {recordedSequence.length > 0 
+                  ? `${recordedSequence.length} positions recorded`
+                  : 'No sequence recorded'
+                }
+              </div>
+            </div>
+          </div>
+
+          {/* Robot Visual Status */}
+          <div className="bg-gray-800 border border-blue-500 rounded-lg p-4">
+            <h3 className="text-lg font-bold text-blue-400 border-b border-blue-500 pb-2 mb-3">
+              ROBOT STATUS
+            </h3>
+            
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-300">Battery:</span>
+                <span className={`font-bold ${esp32Status.battery_voltage > 3.5 ? 'text-green-400' : 'text-red-400'}`}>
+                  {esp32Status.battery_voltage ? `${esp32Status.battery_voltage.toFixed(1)}V` : '--'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-300">Temperature:</span>
+                <span className="text-cyan-400 font-bold">
+                  {esp32Status.temperature ? `${esp32Status.temperature}°C` : '--'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-300">WiFi Signal:</span>
+                <span className="text-purple-400 font-bold">
+                  {esp32Status.wifi_rssi ? `${esp32Status.wifi_rssi}dBm` : '--'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-300">Uptime:</span>
+                <span className="text-green-400 font-bold">
+                  {esp32Status.uptime ? `${Math.floor(esp32Status.uptime / 60000)}m` : '--'}
+                </span>
+              </div>
+            </div>
+
+            {/* Simple Robot Visualization */}
+            <div className="mt-4 p-3 bg-gray-900 rounded border">
+              <div className="text-center text-xs text-gray-400 mb-2">DREADNOUGHT</div>
+              <div className="relative w-24 h-32 mx-auto">
+                {/* Robot Body */}
+                <div className="absolute top-8 left-8 w-8 h-12 bg-green-600 rounded border-2 border-green-400"></div>
+                
+                {/* Left Leg */}
+                <div className="absolute top-16 left-4 w-3 h-8 bg-blue-500 rounded" 
+                     style={{transform: `rotate(${(servos[0]?.angle - 90) * 0.5}deg)`}}>
+                </div>
+                <div className="absolute top-20 left-2 w-3 h-6 bg-blue-400 rounded"
+                     style={{transform: `rotate(${(servos[1]?.angle - 90) * 0.3}deg)`}}>
+                </div>
+                
+                {/* Right Leg */}
+                <div className="absolute top-16 right-4 w-3 h-8 bg-red-500 rounded"
+                     style={{transform: `rotate(${(servos[3]?.angle - 90) * -0.5}deg)`}}>
+                </div>
+                <div className="absolute top-20 right-2 w-3 h-6 bg-red-400 rounded"
+                     style={{transform: `rotate(${(servos[4]?.angle - 90) * -0.3}deg)`}}>
+                </div>
+              </div>
+              
+              <div className="text-xs text-center space-y-1 mt-2">
+                <div className="text-blue-400">L: {servos[0]?.angle}° {servos[1]?.angle}° {servos[2]?.angle}°</div>
+                <div className="text-red-400">R: {servos[3]?.angle}° {servos[4]?.angle}° {servos[5]?.angle}°</div>
+              </div>
+            </div>
           </div>
         </div>
 
