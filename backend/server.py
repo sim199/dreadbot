@@ -246,10 +246,43 @@ async def process_terminal_command(command: str, websocket: WebSocket):
             else:
                 message = "❌ Invalid angle (0-180)"
                 
-        elif cmd == "status":
-            esp32_status = "🟢 Connected" if manager.esp32_connection else "🔴 Disconnected"
-            dashboard_count = len(manager.active_connections)
-            message = f"📊 Status:\n  ESP32: {esp32_status}\n  Dashboards: {dashboard_count} connected"
+        elif cmd == "pose" and len(parts) >= 2:
+            # pose <pose_name>
+            pose_name = parts[1]
+            pose_definitions = {
+                "stand": [90, 90, 90, 90, 90, 90],
+                "crouch": [60, 60, 45, 60, 60, 45],
+                "walk_forward": [75, 105, 60, 105, 75, 120],
+                "walk_backward": [105, 75, 120, 75, 105, 60],
+                "walk_left": [45, 90, 90, 135, 90, 90],
+                "walk_right": [135, 90, 90, 45, 90, 90],
+                "combat_ready": [80, 80, 70, 100, 100, 110]
+            }
+            
+            if pose_name in pose_definitions:
+                angles = pose_definitions[pose_name]
+                success_count = 0
+                
+                for i, angle in enumerate(angles):
+                    success = await manager.send_to_esp32({
+                        "type": "servo_command",
+                        "servo_index": i,
+                        "angle": angle,
+                        "speed": 3
+                    })
+                    if success:
+                        success_count += 1
+                        await manager.broadcast_to_dashboards({
+                            "type": "servo_update",
+                            "servo_index": i,
+                            "angle": angle
+                        })
+                    await asyncio.sleep(0.05)
+                
+                message = f"✅ Executed pose '{pose_name}' ({success_count}/6 servos)"
+            else:
+                available_poses = ", ".join(pose_definitions.keys())
+                message = f"❌ Unknown pose. Available: {available_poses}"
             
         elif cmd == "help":
             message = """🤖 Dreadnought Control Commands:
