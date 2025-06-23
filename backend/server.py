@@ -128,12 +128,38 @@ async def websocket_dashboard(websocket: WebSocket):
                 }
                 await websocket.send_text(json.dumps(response))
                 
-                # Broadcast to other dashboards
-                await manager.broadcast_to_dashboards({
-                    "type": "servo_update",
-                    "servo_index": message["servo_index"],
-                    "angle": message["angle"]
-                })
+            elif message["type"] == "preset_pose":
+                # Handle preset pose execution
+                pose_name = message["pose_name"]
+                angles = message["angles"]
+                speed = message.get("speed", 5)
+                
+                success_count = 0
+                for i, angle in enumerate(angles):
+                    if i < 6:  # Only handle first 6 servos
+                        success = await manager.send_to_esp32({
+                            "type": "servo_command",
+                            "servo_index": i,
+                            "angle": angle,
+                            "speed": speed
+                        })
+                        if success:
+                            success_count += 1
+                            await manager.broadcast_to_dashboards({
+                                "type": "servo_update",
+                                "servo_index": i,
+                                "angle": angle
+                            })
+                        
+                        # Small delay between servo commands for smooth execution
+                        await asyncio.sleep(0.05)
+                
+                response = {
+                    "type": "command_response",
+                    "success": success_count > 0,
+                    "message": f"Executed pose '{pose_name}' ({success_count}/6 servos successful)"
+                }
+                await websocket.send_text(json.dumps(response))
             
             elif message["type"] == "terminal_command":
                 # Parse terminal commands
