@@ -162,12 +162,37 @@ async def test_dashboard_websocket():
             assert "type" in response_data
             assert response_data["type"] == "command_response"
             
+            # Test preset pose command
+            preset_pose_cmd = {
+                "type": "preset_pose",
+                "pose_name": "stand",
+                "angles": [90, 90, 90, 90, 90, 90],
+                "speed": 3
+            }
+            await websocket.send(json.dumps(preset_pose_cmd))
+            response = await websocket.recv()
+            response_data = json.loads(response)
+            assert "type" in response_data
+            assert response_data["type"] == "command_response"
+            assert "success" in response_data
+            assert "message" in response_data
+            assert "Executed pose 'stand'" in response_data["message"]
+            
             # Test terminal commands
             terminal_commands = [
                 "status",
                 "help",
                 "servo 1 45",
                 "servo all 90",
+                "pose stand",
+                "pose crouch",
+                "pose walk_forward",
+                "pose walk_backward",
+                "pose walk_left",
+                "pose walk_right",
+                "pose combat_ready",
+                "pose invalid_pose_name",
+                "emergency_stop",
                 "invalid command"
             ]
             
@@ -181,6 +206,20 @@ async def test_dashboard_websocket():
                 response_data = json.loads(response)
                 assert "type" in response_data
                 assert response_data["type"] == "terminal_response"
+                
+                # Additional assertions for specific commands
+                if cmd == "help":
+                    assert "pose" in str(response_data["message"])
+                    assert "emergency_stop" in str(response_data["message"])
+                elif cmd == "emergency_stop":
+                    assert "EMERGENCY STOP executed" in str(response_data["message"])
+                elif cmd.startswith("pose "):
+                    pose_name = cmd.split()[1]
+                    valid_poses = ["stand", "crouch", "walk_forward", "walk_backward", "walk_left", "walk_right", "combat_ready"]
+                    if pose_name in valid_poses:
+                        assert f"Executed pose '{pose_name}'" in str(response_data["message"])
+                    else:
+                        assert "Unknown pose" in str(response_data["message"])
                 
             print("✅ Dashboard WebSocket test passed")
     except Exception as e:
