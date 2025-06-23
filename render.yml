@@ -1,0 +1,20 @@
+cat > /app/render.yaml << 'EOF'
+services:
+  - type: web
+    name: dreadnought-backend
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn server:app --host 0.0.0.0 --port $PORT"
+    plan: free
+    
+  - type: web
+    name: dreadnought-frontend
+    env: static
+    buildCommand: "cd frontend && npm install && npm run build"
+    staticPublishPath: "./frontend/build"
+    plan: free
+    
+  - type: redis
+    name: dreadnought-redis
+    plan: free
+EOF
