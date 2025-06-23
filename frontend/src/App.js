@@ -683,15 +683,40 @@ const App = () => {
               <div className="w-72 h-32 bg-gray-700 rounded-3xl mx-auto border-2 border-gray-600"></div>
             </div>
 
-            {/* Button Mappings */}
+            {/* Enhanced Button Mappings */}
             <div className="mt-6 text-xs space-y-1">
-              <div className="text-gray-400 font-bold mb-2">BUTTON MAPPINGS:</div>
+              <div className="text-gray-400 font-bold mb-2">COMBAT CONTROLS:</div>
               {Object.entries(gamepadButtons).map(([key, button]) => (
                 <div key={key} className="flex justify-between text-gray-300">
-                  <span className="uppercase">{key.replace('-', ' ')}:</span>
+                  <span className="uppercase font-mono">{key.replace('-', ' ')}:</span>
                   <code className="text-cyan-400">{button.command}</code>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Emergency Controls */}
+          <div className="bg-red-900 border border-red-500 rounded-lg p-4">
+            <h3 className="text-lg font-bold text-red-400 border-b border-red-500 pb-2 mb-3">
+              EMERGENCY CONTROLS
+            </h3>
+            
+            <div className="space-y-2">
+              <button
+                onClick={() => sendTerminalCommand('emergency_stop')}
+                disabled={!connected}
+                className="w-full px-4 py-3 bg-red-600 hover:bg-red-500 disabled:opacity-50 rounded font-bold text-white text-lg transition-all transform hover:scale-105"
+              >
+                🚨 EMERGENCY STOP
+              </button>
+              
+              <button
+                onClick={() => executePresetPose('stand')}
+                disabled={!connected}
+                className="w-full px-4 py-2 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 rounded font-medium text-white transition-all"
+              >
+                🔧 CALIBRATE (STAND)
+              </button>
             </div>
           </div>
         </div>
