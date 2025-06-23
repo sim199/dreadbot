@@ -4,11 +4,11 @@
 #include <ArduinoJson.h>
 
 // ✅ WiFi Configuration - UPDATE THESE WITH YOUR NETWORK
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+const char* ssid = "brandi";
+const char* password = "1715190000b";
 
 // ✅ Dashboard Server Configuration - UPDATE WITH YOUR SERVER IP
-const char* websocket_server = "192.168.1.100";  // Replace with your dashboard server IP
+const char* websocket_server = "https://dreadbot.onrender.com/;  // Replace with your dashboard server IP
 const int websocket_port = 8001;                 // Backend port
 const char* websocket_path = "/ws/esp32";        // ESP32 WebSocket endpoint
 
