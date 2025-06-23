@@ -284,14 +284,32 @@ async def process_terminal_command(command: str, websocket: WebSocket):
                 available_poses = ", ".join(pose_definitions.keys())
                 message = f"❌ Unknown pose. Available: {available_poses}"
             
+        elif cmd == "emergency_stop":
+            # Emergency stop - freeze all servos at current positions
+            success_count = 0
+            for i in range(6):
+                success = await manager.send_to_esp32({
+                    "type": "emergency_stop",
+                    "servo_index": i
+                })
+                if success:
+                    success_count += 1
+            
+            message = f"🚨 EMERGENCY STOP executed ({success_count}/6 servos)"
+            
+        elif cmd == "status":
+            esp32_status = "🟢 Connected" if manager.esp32_connection else "🔴 Disconnected"
+            dashboard_count = len(manager.active_connections)
+            message = f"📊 Status:\n  ESP32: {esp32_status}\n  Dashboards: {dashboard_count} connected"
+            
         elif cmd == "help":
             message = """🤖 Dreadnought Control Commands:
   servo <index> <angle> [speed] - Control single servo (0-5, 0-180°)
   servo all <angle>             - Set all servos to same angle
   status                        - Show connection status
   list configs                  - Show saved configurations
-  save config <name>            - Save current servo positions
-  load config <name>            - Load saved configuration
+  save config <n>            - Save current servo positions
+  load config <n>            - Load saved configuration
   clear                         - Clear terminal
   help                          - Show this help"""
   
