@@ -291,8 +291,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "WebSocket server for dashboard communication"
-    - "REST API endpoints for servo control"
+    - "Movement recording and playback system"
     - "Real-time WebSocket dashboard interface"
     - "Hacker-style terminal interface"
     - "Visual gamepad with customizable buttons"
