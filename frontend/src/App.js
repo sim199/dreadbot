@@ -11,7 +11,8 @@ const App = () => {
     index: i,
     angle: 90,
     enabled: true,
-    lastUpdate: null
+    lastUpdate: null,
+    name: ['Left Hip', 'Left Knee', 'Left Ankle', 'Right Hip', 'Right Knee', 'Right Ankle'][i]
   })));
   const [terminal, setTerminal] = useState([
     { type: 'system', message: '🤖 DREADNOUGHT CONTROL TERMINAL INITIALIZED', timestamp: Date.now() },
@@ -19,14 +20,37 @@ const App = () => {
   ]);
   const [command, setCommand] = useState('');
   const [gamepadButtons, setGamepadButtons] = useState({
-    'button-a': { command: 'servo all 90', active: false },
-    'button-b': { command: 'servo all 0', active: false },
-    'button-x': { command: 'servo 0 45', active: false },
-    'button-y': { command: 'servo 1 135', active: false },
-    'dpad-up': { command: 'servo 2 180', active: false },
-    'dpad-down': { command: 'servo 2 0', active: false },
-    'dpad-left': { command: 'servo 3 0', active: false },
-    'dpad-right': { command: 'servo 3 180', active: false }
+    'button-a': { command: 'pose stand', active: false },
+    'button-b': { command: 'pose crouch', active: false },
+    'button-x': { command: 'pose walk_left', active: false },
+    'button-y': { command: 'pose walk_right', active: false },
+    'dpad-up': { command: 'pose walk_forward', active: false },
+    'dpad-down': { command: 'pose walk_backward', active: false },
+    'dpad-left': { command: 'turn left', active: false },
+    'dpad-right': { command: 'turn right', active: false }
+  });
+  
+  // Advanced features state
+  const [presetPoses, setPresetPoses] = useState({
+    stand: { name: 'Stand', angles: [90, 90, 90, 90, 90, 90], speed: 3 },
+    crouch: { name: 'Crouch', angles: [60, 60, 45, 60, 60, 45], speed: 2 },
+    walk_forward: { name: 'Walk Forward', angles: [75, 105, 60, 105, 75, 120], speed: 5 },
+    walk_backward: { name: 'Walk Back', angles: [105, 75, 120, 75, 105, 60], speed: 5 },
+    walk_left: { name: 'Step Left', angles: [45, 90, 90, 135, 90, 90], speed: 4 },
+    walk_right: { name: 'Step Right', angles: [135, 90, 90, 45, 90, 90], speed: 4 },
+    combat_ready: { name: 'Combat Ready', angles: [80, 80, 70, 100, 100, 110], speed: 3 },
+    celebrate: { name: 'Victory Pose', angles: [45, 60, 90, 135, 120, 90], speed: 2 }
+  });
+  
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedSequence, setRecordedSequence] = useState([]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [globalSpeed, setGlobalSpeed] = useState(5);
+  const [esp32Status, setEsp32Status] = useState({
+    battery: 0,
+    temperature: 0,
+    wifi_rssi: 0,
+    uptime: 0
   });
   
   const terminalRef = useRef(null);
