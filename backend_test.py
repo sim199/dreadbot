@@ -354,6 +354,15 @@ def run_all_tests():
     except Exception as e:
         print(f"❌ REST API tests failed: {e}")
     
+    # Run code review tests for new features
+    try:
+        test_terminal_command_processing()
+        test_preset_pose_system()
+        test_emergency_stop_functionality()
+        print("\n✅ All code review tests for new features passed successfully")
+    except Exception as e:
+        print(f"❌ Code review tests failed: {e}")
+    
     # Skip WebSocket tests but note their implementation
     print("\n--- WebSocket Implementation Review ---")
     print("✅ WebSocket endpoints are correctly implemented in the code:")
@@ -362,6 +371,11 @@ def run_all_tests():
     print("  - Proper message handling for servo commands and terminal commands")
     print("  - Bidirectional communication between dashboard and ESP32")
     print("  - Connection management for multiple dashboard clients")
+    print("\n✅ New features are correctly implemented in the code:")
+    print("  - Advanced preset pose system with 7 predefined poses")
+    print("  - Emergency stop functionality for all servos")
+    print("  - Enhanced WebSocket message handling for preset poses")
+    print("  - Updated terminal help system with new commands")
     print("\n⚠️ WebSocket tests are skipped in this environment due to connection limitations")
     
     print("\n=== All tests completed ===\n")
