@@ -149,6 +149,51 @@ backend:
       - working: true
         agent: "testing"
         comment: "Verified implementation of preset pose system. Code review confirms proper implementation of 7 predefined poses (stand, crouch, walk_forward, walk_backward, walk_left, walk_right, combat_ready). The pose terminal command correctly processes pose names, sends commands to all 6 servos with proper angles, and handles invalid pose names with appropriate error messages. The system also broadcasts servo updates to all dashboard clients."
+        
+  - task: "Emergency stop functionality"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented emergency stop functionality to immediately halt all servo movements"
+      - working: true
+        agent: "testing"
+        comment: "Verified implementation of emergency stop functionality. The emergency_stop terminal command correctly sends stop signals to all 6 servos and reports the success count. The implementation properly handles the emergency stop message type and ensures all servos receive the stop command."
+        
+  - task: "Enhanced WebSocket message handling"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Enhanced WebSocket message handling to support new message types and improved error handling"
+      - working: true
+        agent: "testing"
+        comment: "Verified implementation of enhanced WebSocket message handling. The system correctly processes the new preset_pose message type, handles pose execution with speed control, and broadcasts servo updates for pose changes. The implementation includes proper error handling and response formatting."
+        
+  - task: "Updated terminal help system"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated terminal help system to include documentation for new commands"
+      - working: true
+        agent: "testing"
+        comment: "Verified implementation of updated terminal help system. The help command correctly lists all available commands, including the new pose and emergency_stop commands. The help text provides clear instructions for using each command."
 
   - task: "Movement recording and playback system"
     implemented: true
