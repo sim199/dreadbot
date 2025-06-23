@@ -233,8 +233,14 @@ const App = () => {
       websocket.send(JSON.stringify({
         type: 'servo_command',
         servo_index: servoIndex,
-        angle: parseInt(angle)
+        angle: parseInt(angle),
+        speed: globalSpeed
       }));
+
+      // Record position if recording
+      if (isRecording) {
+        recordCurrentPosition();
+      }
     }
   };
 
